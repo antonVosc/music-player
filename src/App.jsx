@@ -3,6 +3,7 @@ import { AllSongs } from "./components/AllSongs";
 import { Playlists } from "./components/Playlists";
 import { BrowserRouter, Routes, Route } from "react-router";
 
+
 function App() {
   return (
     <BrowserRouter>
