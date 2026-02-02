@@ -19,7 +19,9 @@ git clone https://github.com/antonVosc/music-player.git
 cd music-player/
 ```
 
-3. 
+4. Add wanted songs in /public/songs/
+  
+5. 
 ```
 npm install
 ```
