@@ -19,9 +19,11 @@ git clone https://github.com/antonVosc/music-player.git
 cd music-player/
 ```
 
-4. Add wanted songs in /public/songs/
-  
-5. 
+4. Add wanted songs in public/songs/ in .wav format.
+
+5. Add songs info in empty songs array in src/hooks/useMusic.js
+
+6. 
 ```
 npm install
 ```
