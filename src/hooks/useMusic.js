@@ -65,11 +65,13 @@ export const useMusic = () => {
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState(1);
 
   const handlePlaySong = (song, index) => {
     setCurrentTrack(song);
     setCurrentTrackIndex(index);
+    setIsPlaying(false);
   };
 
   const nextTrack = () => {
@@ -79,6 +81,8 @@ export const useMusic = () => {
 
       return nextIndex;
     });
+
+    setIsPlaying(false);
   };
 
   const prevTrack = () => {
@@ -88,6 +92,8 @@ export const useMusic = () => {
 
       return nextIndex;
     });
+
+    setIsPlaying(false);
   };
 
   const formatTime = (time) => {
@@ -119,5 +125,7 @@ export const useMusic = () => {
     play,
     pause,
     isPlaying,
+    volume,
+    setVolume,
   };
 };
