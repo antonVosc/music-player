@@ -579,14 +579,16 @@ body {
 .song-card.active,
 .song-search-input:focus,
 .playlist-song.active,
-.play-btn {
+.play-btn,
+.create-btn {
   border-color: rgba(16, 185, 129, 0.5);
 }
 
 .playlist-track.active,
 .song-card.active,
 .playlist-song.active,
-.play-btn {
+.play-btn,
+.create-btn {
   background: linear-gradient(
     45deg,
     rgba(16, 185, 129, 0.2),
