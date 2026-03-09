@@ -6,7 +6,25 @@ export const Playlists = () => {
   const [selectedPlaylist, setSelectedPlaylist] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
-  const { playlists, createPlaylist } = useMusic();
+  const {
+    playlists,
+    createPlaylist,
+    allSongs,
+    addSongToPlaylist,
+    currentTrackIndex,
+    handlePlaySong,
+  } = useMusic();
+  const filteredSongs = allSongs.filter((song) => {
+    const matches =
+      song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      song.artist.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const isAlreadyInPlaylist = selectedPlaylist?.songs.some(
+      (playlistSong) => playlistSong.id === song.id,
+    );
+
+    return matches && !isAlreadyInPlaylist;
+  });
 
   const handleCreatePlaylist = () => {
     if (newPlaylistName.trim()) {
@@ -14,6 +32,19 @@ export const Playlists = () => {
 
       setNewPlaylistName("");
     }
+  };
+
+  const handleAddSong = (song) => {
+    if (selectedPlaylist) {
+      addSongToPlaylist(selectedPlaylist.id, song);
+      setSearchQuery("");
+      setShowDropdown(false);
+    }
+  };
+
+  const handlePlayFromPlaylist = (song) => {
+    const globalIndex = allSongs.findIndex((s) => s.id === song.id);
+    handlePlaySong(song, globalIndex);
   };
 
   return (
@@ -65,13 +96,55 @@ export const Playlists = () => {
                       setSelectedPlaylist(playlist);
                       setShowDropdown(e.target.value.length > 0);
                     }}
-                    onFocus={() => {
+                    onFocus={(e) => {
                       setSelectedPlaylist(playlist);
                       setShowDropdown(e.target.value.length > 0);
                     }}
                     className="song-search-input"
                   />
+
+                  {selectedPlaylist?.id === playlist.id && showDropdown && (
+                    <div className="song-dropdown">
+                      {filteredSongs.length === 0 ? (
+                        <div className="dropdown-item no-results">
+                          No songs found.
+                        </div>
+                      ) : (
+                        filteredSongs.slice(0, 5).map((song, key) => (
+                          <div
+                            key={key}
+                            className="dropdown-item"
+                            onClick={() => handleAddSong(song)}
+                          >
+                            <span className="song-title">{song.title}</span>
+                            <span className="song-artist">{song.artist}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
+              </div>
+
+              <div className="playlist-songs">
+                {playlist.songs.length === 0 ? (
+                  <p className="empty-playlist">No songs in this playlist.</p>
+                ) : (
+                  playlist.songs.map((song, key) => (
+                    <div
+                      key={key}
+                      className={`playlist-song ${currentTrackIndex === allSongs.findIndex((s) => s.id === song.id) ? "active" : ""}`}
+                      onClick={() => handlePlayFromPlaylist(song)}
+                    >
+                      <div className="song-info">
+                        <span className="song-title">{song.title}</span>
+                        <span className="song-artist">{song.artist}</span>
+                      </div>
+
+                      <span className="song-duration">{song.duration}</span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           ))
