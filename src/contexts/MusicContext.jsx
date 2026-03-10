@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 const MusicContext = createContext();
 
@@ -70,33 +70,70 @@ export const MusicProvider = ({ children }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
   const [playlists, setPlaylists] = useState([]);
+  const [activePlaylistId, setActivePlaylistId] = useState(null);
 
-  const handlePlaySong = (song, index) => {
+  useEffect(() => {
+    const savedPlaylists = localStorage.getItem("musicPlayerPlaylists");
+
+    if (savedPlaylists) {
+      const playlists = JSON.parse(savedPlaylists);
+      setPlaylists(playlists);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (playlists.length > 0) {
+      localStorage.setItem("musicPlayerPlaylists", JSON.stringify(playlists));
+    } else {
+      localStorage.removeItem("musicPlayerPlaylists");
+    }
+  }, [playlists]);
+
+  const handlePlaySong = (song, index, playlistId = null) => {
     setCurrentTrack(song);
     setCurrentTrackIndex(index);
-    setIsPlaying(false);
+    setActivePlaylistId(playlistId);
+    setIsPlaying(true);
   };
 
   const nextTrack = () => {
-    setCurrentTrackIndex((prev) => {
-      const nextIndex = (prev + 1) % allSongs.length;
-      setCurrentTrack(allSongs[nextIndex]);
+    const playlist = activePlaylistId ? playlists.find(p => p.id === activePlaylistId) : null;
 
-      return nextIndex;
-    });
+    if (playlist) {
+      const indexInPlaylist = playlist.songs.findIndex(s => s.id === currentTrack.id);
+      const nextSong = playlist.songs[(indexInPlaylist + 1) % playlist.songs.length];
+      const globalIndex = allSongs.findIndex(s => s.id === nextSong.id);
 
-    setIsPlaying(false);
+      setCurrentTrack(nextSong);
+      setCurrentTrackIndex(globalIndex);
+    } else {
+      setCurrentTrackIndex((prev) => {
+        const nextIndex = (prev + 1) % allSongs.length;
+        setCurrentTrack(allSongs[nextIndex]);
+
+        return nextIndex;
+      });
+    }
   };
 
   const prevTrack = () => {
-    setCurrentTrackIndex((prev) => {
-      const nextIndex = prev === 0 ? allSongs.length - 1 : prev - 1;
-      setCurrentTrack(allSongs[nextIndex]);
+    const playlist = activePlaylistId ? playlists.find(p => p.id === activePlaylistId) : null;
 
-      return nextIndex;
-    });
+    if (playlist) {
+      const indexInPlaylist = playlist.songs.findIndex(s => s.id === currentTrack.id);
+      const prevSong = playlist.songs[indexInPlaylist === 0 ? playlist.songs.length - 1 : indexInPlaylist - 1];
+      const globalIndex = allSongs.findIndex(s => s.id === prevSong.id);
 
-    setIsPlaying(false);
+      setCurrentTrack(prevSong);
+      setCurrentTrackIndex(globalIndex);
+    } else {
+      setCurrentTrackIndex((prev) => {
+        const nextIndex = prev === 0 ? allSongs.length - 1 : prev - 1;
+        setCurrentTrack(allSongs[nextIndex]);
+
+        return nextIndex;
+      });
+    }
   };
 
   const formatTime = (time) => {
@@ -120,6 +157,12 @@ export const MusicProvider = ({ children }) => {
     setPlaylists((prev) => [...prev, newPlaylist]);
   };
 
+  const deletePlaylist = (playlistId) => {
+    setPlaylists((prev) =>
+      prev.filter((playlist) => playlist.id !== playlistId),
+    );
+  };
+
   const addSongToPlaylist = (playlistId, song) => {
     setPlaylists((prev) =>
       prev.map((playlist) => {
@@ -129,6 +172,17 @@ export const MusicProvider = ({ children }) => {
           return playlist;
         }
       }),
+    );
+  };
+
+  const removeSongFromPlaylist = (playlistId, songId) => {
+    setPlaylists((prev) =>
+      prev.map((playlist) => {
+        if (playlist.id === playlistId) {
+          return { ...playlist, songs: playlist.songs.filter((s) => s.id !== songId) };
+        }
+        return playlist;
+      })
     );
   };
 
@@ -157,7 +211,9 @@ export const MusicProvider = ({ children }) => {
         createPlaylist,
         playlists,
         addSongToPlaylist,
+        removeSongFromPlaylist,
         setCurrentTrack,
+        deletePlaylist,
       }}
     >
       {children}

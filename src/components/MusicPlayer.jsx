@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useMusic } from "../contexts/MusicContext";
 
 export const MusicPlayer = () => {
@@ -16,17 +16,25 @@ export const MusicPlayer = () => {
     play,
     volume,
     setVolume,
+    playlists,
+    addSongToPlaylist,
   } = useMusic();
+  const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
+
+  const handleAddToPlaylist = (playlist) => {
+    const alreadyIn = playlist.songs.some((s) => s.id === currentTrack.id);
+    if (!alreadyIn) {
+      addSongToPlaylist(playlist.id, currentTrack);
+    }
+    setShowPlaylistMenu(false);
+  };
+
   const progressRef = useRef(null);
   const audioRef = useRef(null);
 
   const handleTimeChange = (e) => {
     const audio = audioRef.current;
-
-    if (!audio) {
-      return;
-    }
-
+    if (!audio) return;
     const newTime = parseFloat(e.target.value);
     audio.currentTime = newTime;
     setCurrentTime(newTime);
@@ -39,21 +47,13 @@ export const MusicPlayer = () => {
 
   useEffect(() => {
     const audio = audioRef.current;
-
-    if (!audio) {
-      return;
-    }
-
+    if (!audio) return;
     audio.volume = volume;
   }, [volume]);
 
   useEffect(() => {
     const audio = audioRef.current;
-
-    if (!audio) {
-      return;
-    }
-
+    if (!audio) return;
     if (isPlaying) {
       audio.play().catch((err) => console.error(err));
     } else {
@@ -63,22 +63,11 @@ export const MusicPlayer = () => {
 
   useEffect(() => {
     const audio = audioRef.current;
+    if (!audio) return;
 
-    if (!audio) {
-      return;
-    }
-
-    const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
-    };
-
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-    };
-
-    const handleEnded = () => {
-      nextTrack();
-    };
+    const handleLoadedMetadata = () => setDuration(audio.duration);
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleEnded = () => nextTrack();
 
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("canplay", handleLoadedMetadata);
@@ -95,15 +84,23 @@ export const MusicPlayer = () => {
 
   useEffect(() => {
     const audio = audioRef.current;
-
-    if (!audio) {
-      return;
-    }
-
+    if (!audio) return;
     audio.load();
     setCurrentTime(0);
     setDuration(0);
-  }, [currentTrack, setCurrentTime, setDuration]);
+    if (isPlaying) {
+      const handleCanPlay = () => audio.play().catch(console.error);
+      audio.addEventListener("canplay", handleCanPlay, { once: true });
+      return () => audio.removeEventListener("canplay", handleCanPlay);
+    }
+  }, [currentTrack, setCurrentTime, setDuration, isPlaying]);
+
+  useEffect(() => {
+    if (!showPlaylistMenu) return;
+    const handleClickOutside = () => setShowPlaylistMenu(false);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [showPlaylistMenu]);
 
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
@@ -143,21 +140,56 @@ export const MusicPlayer = () => {
         <span className="time">{formatTime(duration)}</span>
       </div>
 
-      <div className="controls">
-        <button className="control-btn" onClick={prevTrack}>
-          ⏮
-        </button>
+      <div className="controls-row">
+        <div className="controls">
+          <button className="control-btn" onClick={prevTrack}>
+            ⏮
+          </button>
+          <button
+            className="control-btn play-btn"
+            onClick={() => (isPlaying ? pause() : play())}
+          >
+            {isPlaying ? "⏸" : "▶"}
+          </button>
+          <button className="control-btn" onClick={nextTrack}>
+            ⏭
+          </button>
+        </div>
 
-        <button
-          className="control-btn play-btn"
-          onClick={() => (isPlaying ? pause() : play())}
-        >
-          {isPlaying ? "⏸" : "▶"}
-        </button>
+        {isPlaying && playlists.length > 0 && (
+          <div
+            className="add-to-playlist-container"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="add-to-playlist-btn"
+              onClick={() => setShowPlaylistMenu((prev) => !prev)}
+            >
+              + Add to playlist
+            </button>
 
-        <button className="control-btn" onClick={nextTrack}>
-          ⏭
-        </button>
+            {showPlaylistMenu && (
+              <div className="playlist-menu">
+                {playlists.map((playlist) => {
+                  const alreadyIn = playlist.songs.some(
+                    (s) => s.id === currentTrack.id,
+                  );
+                  return (
+                    <div
+                      key={playlist.id}
+                      className={`playlist-menu-item ${alreadyIn ? "disabled" : ""}`}
+                      onClick={() =>
+                        !alreadyIn && handleAddToPlaylist(playlist)
+                      }
+                    >
+                      {playlist.name} {alreadyIn ? "✓" : ""}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="volume-container">
@@ -170,7 +202,7 @@ export const MusicPlayer = () => {
           step="0.1"
           className="volume-bar"
           onChange={handleVolumeChange}
-          volume={volume}
+          value={volume}
         />
       </div>
     </div>

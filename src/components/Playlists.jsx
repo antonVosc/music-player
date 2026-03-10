@@ -13,6 +13,9 @@ export const Playlists = () => {
     addSongToPlaylist,
     currentTrackIndex,
     handlePlaySong,
+    deletePlaylist,
+    isPlaying,
+    removeSongFromPlaylist,
   } = useMusic();
   const filteredSongs = allSongs.filter((song) => {
     const matches =
@@ -42,9 +45,15 @@ export const Playlists = () => {
     }
   };
 
-  const handlePlayFromPlaylist = (song) => {
+  const handlePlayFromPlaylist = (song, playlistId) => {
     const globalIndex = allSongs.findIndex((s) => s.id === song.id);
-    handlePlaySong(song, globalIndex);
+    handlePlaySong(song, globalIndex, playlistId);
+  };
+
+  const deletePlaylistConfirmation = (playlist) => {
+    if (window.confirm(`Are you sure you want to delete "${playlist.name}"?`)) {
+      deletePlaylist(playlist.id);
+    }
   };
 
   return (
@@ -79,7 +88,12 @@ export const Playlists = () => {
                 <h3>{playlist.name}</h3>
 
                 <div className="playlist-actions">
-                  <button className="delete-playlist-btn">Delete</button>
+                  <button
+                    className="delete-playlist-btn"
+                    onClick={() => deletePlaylistConfirmation(playlist)}
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
 
@@ -130,20 +144,38 @@ export const Playlists = () => {
                 {playlist.songs.length === 0 ? (
                   <p className="empty-playlist">No songs in this playlist.</p>
                 ) : (
-                  playlist.songs.map((song, key) => (
-                    <div
-                      key={key}
-                      className={`playlist-song ${currentTrackIndex === allSongs.findIndex((s) => s.id === song.id) ? "active" : ""}`}
-                      onClick={() => handlePlayFromPlaylist(song)}
-                    >
-                      <div className="song-info">
-                        <span className="song-title">{song.title}</span>
-                        <span className="song-artist">{song.artist}</span>
-                      </div>
+                  playlist.songs.map((song) => {
+                    const globalIndex = allSongs.findIndex((s) => s.id === song.id);
+                    const isActive = currentTrackIndex === globalIndex;
 
-                      <span className="song-duration">{song.duration}</span>
-                    </div>
-                  ))
+                    return (
+                      <div
+                        key={song.id}
+                        className={`playlist-song ${isActive ? "active" : ""}`}
+                        onClick={() => handlePlayFromPlaylist(song, playlist.id)}
+                      >
+                        <div className="song-info">
+                          <span className="song-title">{song.title}</span>
+                          <span className="song-artist">{song.artist}</span>
+                          <button
+                            className="remove-song-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeSongFromPlaylist(playlist.id, song.id);
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+
+                        <div className="play-button">
+                          {isActive ? (isPlaying ? "▶" : "") : ""}
+                        </div>
+
+                        <span className="song-duration">{song.duration}</span>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>
